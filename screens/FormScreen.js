@@ -65,7 +65,7 @@ export default function Explorer() {
                         setNumpla(jsonResponse.numpla)
                         setNomveh(jsonResponse.nomveh)
                         setNomopr(jsonResponse.nomopr)
-                        jsonResponse.fecreg = new Date().toISOString().substring(0, 10)
+                        jsonResponse.fecreg = new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit'})
                         await AsyncStorage.setItem('LastCodebar', JSON.stringify(jsonResponse))
                     }
                 }
