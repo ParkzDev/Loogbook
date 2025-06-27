@@ -16,16 +16,21 @@ export default function Explorer() {
             const storageData = await AsyncStorage.getItem('LastCodebar')
             if (storageData !== null && kmveh !== '') {
                 const json = await JSON.parse(storageData)
-                const xhr = new XMLHttpRequest()
-                xhr.open('POST', 'http://192.168.1.10/veh/insertvehkm.php', true)
-                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
-                xhr.setRequestHeader('Access-Control-Allow-Origin', '*')
-                xhr.setRequestHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
-                xhr.onloadend = async function () {
-                    if (xhr.status !== 201) {
-                        Alert.alert('Error al Registrar Movimiento', JSON.parse(xhr.responseText).error)
+
+                fetch('http://192.168.1.249:8001/api/v1/logboot/insertlogbook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ cveveh: json.cveveh, fecreg: json.fecreg.trim(), kmveh: kmveh, obsreg: obsreg }),
+                })
+                .then(async res => {
+                    const data = await res.json()
+                    if (res.status !== 201) {
+                        Alert.alert('Error al Registrar Movimiento', data.message)
                     } else {
-                        Alert.alert('Movimiento Registrado', JSON.parse(xhr.responseText).mensaje)
+                        Alert.alert('Movimiento Registrado', data.message)
                         await AsyncStorage.removeItem('LastCodebar')
                         setNumpla('')
                         setNomveh('')
@@ -33,13 +38,12 @@ export default function Explorer() {
                         setKmveh('')
                         setObsreg('')
                     }
-                }
-                xhr.send(`cveveh=${json.cveveh}&fecreg=${json.fecreg}&kmveh=${kmveh}&obsreg=${obsreg}`)
+                })
             } else {
                 Alert.alert('Datos incompletos', 'Se esta intentando enviar la información, pero falta escanear el codigo de barras o escribir el kilometraje del vehiculo.')
             }
         } catch (err) {
-            alert('Codigo no detectado.')
+            alert(err)
         }
     }
 
@@ -48,28 +52,31 @@ export default function Explorer() {
             const storageData = await AsyncStorage.getItem('LastCodebar')
             if (storageData !== null) {
                 const json = await JSON.parse(storageData)
-                const xhr = new XMLHttpRequest()
-                xhr.open('POST', 'http://192.168.1.10/veh/getveh.php', true)
-                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
-                xhr.setRequestHeader('Access-Control-Allow-Origin', '*')
-                xhr.setRequestHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
-                xhr.onloadend = async function () {
-                    if (xhr.status !== 200) {
+                fetch('http://192.168.1.249:8001/api/v1/logboot/getdriverdata', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*',
+                    },
+                    body: JSON.stringify({ numpla: json.numpla.trim(), }),
+                })
+                .then(async res => {
+                    const data = await res.json()
+                    if (res.status !== 200) {
                         setNumpla('')
                         setNomveh('')
                         setNomopr('')
                         await AsyncStorage.removeItem('LastCodebar')
-                        Alert.alert('Codigo invalido', `Tipo de respuesta: ${xhr.responseType} \nEstatus: ${xhr.status} \nRespuesta: ${xhr.responseText}`)
+                        Alert.alert('Codigo invalido', `Tipo de respuesta: ${res.type} \nEstatus: ${res.status} \nRespuesta: ${data.message}`)
                     } else {
-                        let jsonResponse = JSON.parse(xhr.responseText)
-                        setNumpla(jsonResponse.numpla)
-                        setNomveh(jsonResponse.nomveh)
-                        setNomopr(jsonResponse.nomopr)
-                        jsonResponse.fecreg = new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit'})
-                        await AsyncStorage.setItem('LastCodebar', JSON.stringify(jsonResponse))
+                        console.info(data)
+                        setNumpla(data.numpla)
+                        setNomveh(data.nomveh)
+                        setNomopr(data.nomopr)
+                        data.fecreg = new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' })
+                        await AsyncStorage.setItem('LastCodebar', JSON.stringify(data))
                     }
-                }
-                xhr.send(`placa=${json.numpla}`)
+                })     
             } else {
                 setNumpla('')
                 setNomveh('')
